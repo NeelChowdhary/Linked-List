@@ -1,0 +1,629 @@
+
+//	PIC 10B Winter 2016
+//  hw8.cpp
+
+//  Created by Neel Chowdhary on 2/27/16.
+
+#include <iostream>
+#include <cassert>
+
+class List;
+class Iterator;
+
+class Node{
+public:
+	Node(int s);
+private:
+	int data;
+	Node* previous;
+	Node* next;
+	friend class List;
+	friend class Iterator;
+};
+
+class List{
+public:
+	List();
+	~List();
+	void push_back(int s);
+	void push_front(int s);
+	void insert(Iterator& iter, int s);
+	Iterator erase(Iterator iter);
+	Iterator begin();
+	Iterator end();
+	void reverse();
+	void reverse2();
+	void swap(List& other);
+	void sort();
+	void merge(List& other);
+	int get_size() const;
+	int maximum();
+private:
+	void destroy(Node* start);
+	Node* first;
+	Node* last;
+	int size;
+	friend class Iterator;
+};
+
+
+class Iterator{
+public:
+	Iterator();
+	int operator*() const;
+	Iterator& operator++();
+	Iterator operator++(int unused);
+	Iterator& operator--();
+	Iterator operator--(int unused);
+private:
+	Node* position;
+	List* container;
+	friend class List;
+	friend void sort(List& names);
+	friend bool operator==(const Iterator& a, const Iterator& b);
+	friend bool operator!=(const Iterator& a, const Iterator& b);
+};
+
+/**
+This is the Node constructor
+@Param s is the int it stores
+*/
+Node::Node(int s){
+	data = s;
+	previous = nullptr;
+	next = nullptr;
+}
+/**
+This is the List constructor
+Creates an empty List
+*/
+List::List(){
+	size = 0;
+	first = nullptr;
+	last = nullptr;
+}
+/**
+This function is an aid for ~List destructor
+*/
+void List::destroy(Node* start){
+	if (start->next != nullptr){
+		destroy(start->next);
+		delete start;
+	}
+}
+/**
+This is the destructor for List
+*/
+List::~List(){
+	destroy(first);
+}
+/**
+This function pushes the list back by 1 index
+@Param s is the value of the pushed back index
+*/
+void List::push_back(int s){
+	//increase size by 1
+	++size;
+	//create a new node whose data is s
+	Node* new_node = new Node(s);
+	if (last == nullptr){ // List is empty
+		first = new_node;
+		last = new_node;
+	}
+	else{
+		//link the last node to the pushed back node
+		new_node->previous = last;
+		//link the pushed back node to the last node
+		last->next = new_node;
+		//set the last node as the pushed back node
+		last = new_node;
+	}
+}
+/**
+This function inserts a value at the front of the list
+@Param s is the value of the new node
+*/
+void List::push_front(int s){
+	//increase size by one
+	++size;
+	//create an Iterator pointing to the first element
+	Iterator pos = begin();
+	//insert the node at that position
+	insert(pos, s);
+}
+
+/**
+This function to reverses the list
+*/
+void List::reverse(){
+	int halfsize = size / 2;
+	Iterator iter = begin();
+	Iterator backiter = end();
+	--backiter;
+	for (size_t i = 0; i < halfsize; ++i){
+		int k = *iter;
+		iter.position->data = *backiter;
+		backiter.position->data = k;
+		++iter;
+		--backiter;
+	}
+}
+
+/**
+This function swaps this list with another list
+@Param copy is the list to be swapped
+*/
+void List::swap(List& other){
+	//make a copy of the passed in list
+	List copy = other;
+	//set the passed in list as this list
+	other = *this;
+	//set this list as the copy
+	*this = copy;
+}
+
+void List::merge(List& other){
+	int n = 0;
+	if (size > other.get_size()){
+		n = other.get_size();
+	}
+	else n = size;
+	Iterator iter = begin();
+	++iter;
+	Iterator otheriter = other.begin();
+	if (size > other.get_size()){
+		for (size_t i = 0; i < n; ++i){
+			insert(iter, *otheriter);
+			++++iter;
+			++otheriter;
+		}
+	}
+	else{
+		for (size_t i = 0; i < n; ++i){
+			insert(iter, *otheriter);
+			++++iter;
+			++otheriter;
+		}
+		while (otheriter != other.end()){
+			push_back(*otheriter);
+			++otheriter;
+		}
+	}
+}
+
+/**
+This function returns the size of the list
+@returns an int representing size
+*/
+int List::get_size() const{
+	return size;
+}
+/**
+This function finds the highest value of the list
+@returns an int representing the highest value
+*/
+int List::maximum(){
+	//create an int to hold the highest value
+	int running_max = 0;
+	//create an Iterator to traverse the list
+	Iterator pos = begin();
+	//traverse the list
+	for (pos = begin(); pos != end(); ++pos){
+		//set int to the value of this node if the node holds a greater value
+		if (*pos > running_max){
+			running_max = *pos;
+		}
+	}
+	//return the greatest value
+	return running_max;
+}
+/**
+Ths function inserts a value into the list
+@Param iter is the position to be inserted
+@Param s is the value to be inserted
+@returns an Iterator pointing to the value inserted
+*/
+void List::insert(Iterator& iter, int s){
+	//if list is empty
+	if (iter.position == nullptr){
+		//push back by the value
+		push_back(s);
+		iter.position = first;
+		return;
+	}
+	//increase size by 1
+	++size;
+	//create a Node* representing the current Node the Iterator is pointing to
+	Node* after = iter.position;
+	//create a Node* representing the next Node after the Iterator
+	Node* before = iter.position->previous;
+	//create a new Node holding the value passed in
+	Node* new_node = new Node(s);
+	//link the previous Node before the Iterator to the new node
+	new_node->previous = before;
+	//link the new Node to the next Node after the Iterator
+	new_node->next = after;
+	//link the next Node after the Iterator to the new Node
+	after->previous = new_node;
+	//if Iterator is pointing at first element
+	if (before == nullptr){ // Insert at beginning
+		first = new_node;
+	}
+	else{
+		before->next = new_node;
+	}
+	iter.position = new_node;
+}
+/**
+This function erases a Node in the List
+@Param iter is an Iterator pointing to a Node in the List
+@returns an Iterator pointing to the Node after the erased one
+*/
+Iterator List::erase(Iterator iter){
+	//decrease size by one
+	--size;
+	//make sure the Iterator actually points to a real Node
+	assert(iter.position != nullptr);
+	//create a Node that represents the Node being removed
+	Node* remove = iter.position;
+	//create a Node that represents the previous Node before Iterator
+	Node* before = remove->previous;
+	//create a Node that represents the next Node after Iterator
+	Node* after = remove->next;
+	//if the Iterator points to the first Node
+	if (remove == first){
+		//set first as the second Node
+		first = after;
+	}
+	else{	//link the Node before the Iterator to the Node after the Iterator
+		before->next = after;
+	}
+	//if the Iterator points to the last Node
+	if (remove == last){
+		//set the last Node as the Node before the Iterator
+		last = before;
+	}
+	else{	//link the Node after the Iterator to the Node before the Iterator
+		after->previous = before;
+	}
+	//delete the Node the Iterator is pointing to
+	delete remove;
+	//create a new Iterator
+	Iterator r;
+	//point the the Node after the Node that was just deleted
+	r.position = after;
+	r.container = this;
+	return r;
+}
+/**
+This member function creates an Iterator pointing to the first element of the List
+@returns an Iterator pointing to the first element
+*/
+Iterator List::begin(){
+	//create an Iterator
+	Iterator iter;
+	//point the Iterator to the first element
+	iter.position = first;
+	iter.container = this;
+	//return the Iterator
+	return iter;
+}
+/**
+This function creates an Iterator pointing to one after the last element of the list
+@returns an Iterator pointing to the last element
+*/
+Iterator List::end(){
+	//create an Iterator
+	Iterator iter;
+	//point the Iterator to one after the last element
+	iter.position = nullptr;
+	iter.container = this;
+	//return the Iterator
+	return iter;
+}
+/**
+This is the constructor for Iterator
+Creates an Iterator pointing to nothing
+*/
+Iterator::Iterator(){
+	position = nullptr;
+	container = nullptr;
+}
+/**
+This function overloads the * operator
+It dereferences the Iterator
+@returns an int representing the value held by the Node
+*/
+int Iterator::operator*() const{
+	//make sure the Iterator is not pointing to anything outside the list
+	assert(position != nullptr);
+	//return an int that represents the Node being pointed at
+	return position->data;
+}
+/**
+This function overloads the prefix++ operator
+It increments the Iterator by 1
+@returns a reference to the Iterator
+*/
+Iterator& Iterator::operator++(){
+	//make sure the Iterator is pointing at something in the List
+	if (position == nullptr){
+		return *this;
+	}
+	//increment the Iterator to point to the next Node
+	position = position->next;
+	//return a reference to the Iterator
+	return *this;
+}
+/**
+This function overloads the postfix++ operator
+It increments the Iterator by 1
+@returns a copy of the incremented Iterator
+*/
+Iterator Iterator::operator++(int unused){
+	//make a copy of this Iterator
+	Iterator copy = *this;
+	//increment this
+	++(*this);
+	//return  copy
+	return copy;
+}
+/**
+This function overloads the prefix-- operator
+It decrements the Iterator by 1
+@returns a reference to the Iterator
+*/
+Iterator& Iterator::operator--(){
+	if (position == container->first){
+		return *this;
+	}
+	//decrement the Iterator to point to the previous Node
+	if (position == nullptr){
+		position = container->last;
+	}
+	else position = position->previous;
+	//return a reference to the Iterator
+	return *this;
+}
+/**
+This function overloads the postfix-- operator
+It decrements the Iterator by 1
+@returns a copy of the incremented Iterator
+*/
+Iterator Iterator::operator--(int unused){
+	//make a copy of this Iterator
+	Iterator copy = *this;
+	//decrement this
+	--(*this);
+	//return copy;
+	return copy;
+}
+
+/**
+This function overloads the ==operator to compare if two Nodes are the same;
+@Param a is the Iterator pointing to the first Node
+@Param b is the Iterator pointing to the second Node
+@returns a bool
+*/
+bool operator==(const Iterator& a, const Iterator& b){
+	return a.position == b.position;
+}
+/**
+This function overloads the ==operator to compare if two Nodes are different;
+@Param a is the Iterator pointing to the first Node
+@Param b is the Iterator pointing to the second Node
+@returns a bool
+*/
+bool operator!=(const Iterator& a, const Iterator& b){
+	return a.position != b.position;
+}
+/**
+This function removes copies from a List
+@Param name is the List this function is performed on
+*/
+void downsize(List& names){
+	//Create an Iterator pointing to the first element of the List
+	Iterator crawl = names.begin();
+	//crawl through the List
+	for (crawl; crawl != names.end(); ++crawl){
+		//Create an Iterator set to crawl
+		Iterator runner = crawl;
+		//Increment the new Iterator
+		++runner;
+		//run the Iterator through the List to see if crawl points to a Node with the same value as the Node this is pointing to
+		while (runner != names.end()){
+			//if two values are the same
+			if (*crawl == *runner){
+				//erase the Node runner is pointing to
+				runner = names.erase(runner);
+			}
+			//Increment runner
+			++runner;
+		}
+	}
+}
+/**
+This function sorts the list in increasing order
+*/
+void List::sort(){
+	//make sure list isn't empty
+	if (first == nullptr){
+		return;
+	}
+	//create an Iterator starting from the beginning
+	Iterator iter = begin();
+	//traverse the List to see if the Node the Iterator is pointing to is smaller than the values of the Nodes after
+	for (iter = begin(); iter != end(); ++iter){
+		//create another Iterator to traverse the partial list behind the first Iterator to compare the values
+		Iterator crawl = iter;
+		++crawl;
+		//the 2nd Iterator traverses the List
+		while (crawl != end()){
+			//if the first Iterator dereferenced is a larger value, swap the two values
+			if (*iter > *crawl){
+				//create a copy of the first Iterator dereferenced
+				int copy = *iter;
+				//set the value of the Node the first Iterator is pointing at to the value of the Node the second Iterator is pointing at
+				iter.position->data = *crawl;
+				//set the value of the Node the second Iterator is pointing at to the copy
+				crawl.position->data = copy;
+			}
+			//increment the second Iterator
+			++crawl;
+		}
+	}
+}
+
+/**
+This function merges two Lists together alternating elements from each list
+@Param lhs is the first List
+@Param rhs is the second List
+@returns a new List that represents the first and second merged together
+*/
+List merge(List& lhs, List& rhs){
+	int n = 0;
+	//bool to see if the first List is bigger
+	bool lhs_is_bigger;
+	//check which List is bigger
+	if (lhs.get_size() < rhs.get_size()){
+		n = lhs.get_size();
+		lhs_is_bigger = false;
+	}
+	else{
+		n = rhs.get_size();
+		lhs_is_bigger = true;
+	}
+	//now n is the size of the smaller list
+	//Create a new empty list to represent the merged list
+	List append;
+	//Create an Iterator point to the first element of the first list
+	Iterator left_iter = lhs.begin();
+	//Create an Iterator point to the second element of the first list
+	Iterator right_iter = rhs.begin();
+	for (size_t i = 0; i < n; ++i){
+		//push back the new List one by one in alternating order
+		append.push_back(*left_iter);
+		append.push_back(*right_iter);
+		//increment both iterators
+		++left_iter;
+		++right_iter;
+	}
+	//if the first List is bigger
+	if (lhs_is_bigger){
+		//keep pushing back new merged list until all values of the first List have been added
+		while (left_iter != lhs.end()){
+			append.push_back(*left_iter);
+			++left_iter;
+		}
+	}
+	//if second list is bigger
+	else{
+		while (right_iter != rhs.end()){
+			//keep pushing back new merged list until all values of the second List have been added
+			append.push_back(*right_iter);
+			++right_iter;
+		}
+	}
+	//return the merged List
+	return append;
+}
+
+int main(){
+
+	List list;
+	std::cout << "Please enter a set of nonnegative numbers for a List (Enter -1 when you are finished) : " << std::endl;
+	int input = 0;
+	while (input != -1){
+		std::cin >> input;
+		if (input != -1){
+			list.push_back(input);
+		}
+	}
+	Iterator iter = list.begin();
+	std::cout << "(";
+	for (size_t i = 0; i < list.get_size() - 1; ++i){
+		std::cout << *iter << ",";
+		++iter;
+	}
+	std::cout << *iter << ")" << std::endl;
+	std::cout << std::endl;
+
+	input = 0;
+	int value = 0;
+	while (input != -1){
+
+		std::cout << "Select an index for insertion (enter -1 when finished): ";
+		std::cin >> input;
+		if (input != -1){
+			std::cout << "Select a value for insertion: ";
+			std::cin >> value;
+			Iterator insertion_iter = list.begin();
+			for (size_t j = 0; j < input; ++j){
+				++insertion_iter;
+			}
+			list.insert(insertion_iter, value);
+		}
+	}
+	std::cout << std::endl << "The augmented List is: " << std::endl;
+
+	iter = list.begin();
+	std::cout << "(";
+	for (size_t i = 0; i < list.get_size() - 1; ++i){
+		std::cout << *iter << ",";
+		++iter;
+	}
+	std::cout << *iter << ")" << std::endl << std::endl;
+
+	std::cout << "The maximum of the List is: " << list.maximum() << std::endl;
+
+	std::cout << "The size of the List is: " << list.get_size() << std::endl;
+
+	std::cout << "When we remove every second value from this list we are left with: " << std::endl;
+	downsize(list);
+	iter = list.begin();
+	std::cout << "(";
+	for (size_t i = 0; i < list.get_size() - 1; ++i){
+		std::cout << *iter << ",";
+		++iter;
+	}
+	std::cout << *iter << ")" << std::endl;
+	
+	std::cout << "When we sort this downsized list we obtain: " << std::endl;
+	list.sort();
+	iter = list.begin();
+	std::cout << "(";
+	for (size_t i = 0; i < list.get_size() - 1; ++i){
+		std::cout << *iter << ",";
+		++iter;
+	}
+	std::cout << *iter << ")" << std::endl;
+	
+	std::cout << "And this sorted list in reverse order is: " << std::endl;
+	list.reverse();
+	iter = list.begin();
+	std::cout << "(";
+	for (size_t i = 0; i < list.get_size() - 1; ++i){
+		std::cout << *iter << ",";
+		++iter;
+	}
+	std::cout << *iter << ")" << std::endl;
+
+	std::cout << "If we merge this list with the list (2 ,3 ,5 ,7 ,11, 15) we obtain: " << std::endl;
+	List second;
+	second.push_back(2);
+	second.push_back(3);
+	second.push_back(5);
+	second.push_back(7);
+	second.push_back(11);
+	second.push_back(15);
+	list.merge(second);
+
+	iter = list.begin();
+	std::cout << "(";
+	for (size_t i = 0; i < list.get_size() - 1; ++i){
+		std::cout << *iter << ",";
+		++iter;
+	}
+	std::cout << *iter << ")" << std::endl;
+	return 0;
+}
